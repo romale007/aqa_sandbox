@@ -15,10 +15,13 @@ import {
     Container,
     Pagination,
     Stack,
+    Button,
+    CircularProgress,
 } from '@mui/material';
+import { Link } from 'react-router-dom';
 
-// Backend API URL
-const API_URL = 'http://localhost:5001';
+// Get API URL from environment variable or use default
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 function MotorbikeList() {
     const navigate = useNavigate();
@@ -29,13 +32,20 @@ function MotorbikeList() {
     const [priceRange, setPriceRange] = useState('all');
     const [page, setPage] = useState(1);
     const bikesPerPage = 9; // Show 9 bikes per page (3x3 grid)
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [brands, setBrands] = useState([]);
 
     useEffect(() => {
-        // Use the backend API URL
         const fetchMotorbikes = async () => {
             try {
+                setLoading(true);
                 const response = await fetch(`${API_URL}/api/motorbikes`);
                 const data = await response.json();
+
+                // Extract unique brands
+                const uniqueBrands = [...new Set(data.map(bike => bike.brand))].sort();
+                setBrands(uniqueBrands);
 
                 // Update image URLs to use the backend server
                 const bikesWithCorrectUrls = data.map(bike => ({
@@ -45,8 +55,11 @@ function MotorbikeList() {
 
                 setMotorbikes(bikesWithCorrectUrls);
                 setFilteredBikes(bikesWithCorrectUrls);
-            } catch (error) {
-                console.error('Error fetching motorbikes:', error);
+                setLoading(false);
+            } catch (err) {
+                console.error('Error fetching motorbikes:', err);
+                setError('Failed to load motorbikes. Please try again later.');
+                setLoading(false);
             }
         };
 
@@ -82,8 +95,6 @@ function MotorbikeList() {
         setPage(1); // Reset to first page when filters change
     }, [motorbikes, searchTerm, brandFilter, priceRange]);
 
-    const brands = [...new Set(motorbikes.map((bike) => bike.brand))];
-
     // Calculate pagination
     const indexOfLastBike = page * bikesPerPage;
     const indexOfFirstBike = indexOfLastBike - bikesPerPage;
@@ -95,59 +106,56 @@ function MotorbikeList() {
         window.scrollTo(0, 0); // Scroll to top when page changes
     };
 
-    return (
-        <Container>
-            <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" component="h1" gutterBottom>
-                    Motorbikes
-                </Typography>
-                <Grid container spacing={2} sx={{ mb: 4 }}>
-                    <Grid item xs={12} sm={4}>
-                        <TextField
-                            fullWidth
-                            label="Search"
-                            variant="outlined"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                        <FormControl fullWidth>
-                            <InputLabel>Brand</InputLabel>
-                            <Select
-                                value={brandFilter}
-                                label="Brand"
-                                onChange={(e) => setBrandFilter(e.target.value)}
-                            >
-                                <MenuItem value="all">All Brands</MenuItem>
-                                {brands.map((brand) => (
-                                    <MenuItem key={brand} value={brand}>
-                                        {brand}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                        <FormControl fullWidth>
-                            <InputLabel>Price Range</InputLabel>
-                            <Select
-                                value={priceRange}
-                                label="Price Range"
-                                onChange={(e) => setPriceRange(e.target.value)}
-                            >
-                                <MenuItem value="all">All Prices</MenuItem>
-                                <MenuItem value="0-5000">Under $5,000</MenuItem>
-                                <MenuItem value="5000-10000">$5,000 - $10,000</MenuItem>
-                                <MenuItem value="10000-15000">$10,000 - $15,000</MenuItem>
-                                <MenuItem value="15000-20000">$15,000 - $20,000</MenuItem>
-                                <MenuItem value="20000-30000">$20,000 - $30,000</MenuItem>
-                                <MenuItem value="30000">Over $30,000</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                </Grid>
+    if (loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+                <CircularProgress />
             </Box>
+        );
+    }
+
+    if (error) {
+        return (
+            <Container maxWidth="md" sx={{ mt: 4, textAlign: 'center' }}>
+                <Typography variant="h5" color="error">{error}</Typography>
+            </Container>
+        );
+    }
+
+    return (
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+            <Typography variant="h4" component="h1" gutterBottom>
+                Motorbikes
+            </Typography>
+
+            <Box sx={{ mb: 4, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <TextField
+                    label="Search"
+                    variant="outlined"
+                    size="small"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    sx={{ minWidth: 200 }}
+                />
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <InputLabel id="brand-filter-label">Brand</InputLabel>
+                    <Select
+                        labelId="brand-filter-label"
+                        value={brandFilter}
+                        label="Brand"
+                        onChange={(e) => setBrandFilter(e.target.value)}
+                    >
+                        <MenuItem value="all">All Brands</MenuItem>
+                        {brands.map((brand) => (
+                            <MenuItem key={brand} value={brand}>{brand}</MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Box>
+
+            <Typography variant="body1" sx={{ mb: 2 }}>
+                Showing {currentBikes.length} of {filteredBikes.length} motorbikes
+            </Typography>
 
             <Grid container spacing={4}>
                 {currentBikes.map((bike) => (
@@ -164,19 +172,28 @@ function MotorbikeList() {
                             <CardMedia
                                 component="img"
                                 height="200"
-                                image={bike.image_url || 'https://source.unsplash.com/random/800x600/?motorcycle'}
+                                image={bike.image_url || 'https://via.placeholder.com/300x200?text=No+Image'}
                                 alt={`${bike.brand} ${bike.model}`}
                             />
                             <CardContent sx={{ flexGrow: 1 }}>
-                                <Typography gutterBottom variant="h5" component="h2">
+                                <Typography gutterBottom variant="h5" component="h3">
                                     {bike.brand} {bike.model}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography variant="body2" color="text.secondary" paragraph>
                                     Year: {bike.year}
                                 </Typography>
                                 <Typography variant="h6" color="primary">
                                     ${bike.price.toLocaleString()}
                                 </Typography>
+                                <Button
+                                    component={Link}
+                                    to={`/motorbikes/${bike.id}`}
+                                    variant="outlined"
+                                    color="primary"
+                                    sx={{ mt: 2 }}
+                                >
+                                    View Details
+                                </Button>
                             </CardContent>
                         </Card>
                     </Grid>
@@ -184,15 +201,14 @@ function MotorbikeList() {
             </Grid>
 
             {pageCount > 1 && (
-                <Stack spacing={2} sx={{ mt: 4, mb: 4, alignItems: 'center' }}>
+                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
                     <Pagination
                         count={pageCount}
                         page={page}
                         onChange={handlePageChange}
                         color="primary"
-                        size="large"
                     />
-                </Stack>
+                </Box>
             )}
         </Container>
     );

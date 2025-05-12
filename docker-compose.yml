@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:14-alpine
+    container_name: motorbike-store-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: motorbike_store
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend API service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: motorbike-store-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '5001:5001'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/motorbike_store
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/assets:/app/assets
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: motorbike-store-frontend
+    depends_on:
+      - backend
+    ports:
+      - '3000:3000'
+    environment:
+      - REACT_APP_API_URL=http://localhost:5001
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  # API Documentation service
+  docs:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: motorbike-store-docs
+    command: npm run docs
+    depends_on:
+      - backend
+    ports:
+      - '5002:5002'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/motorbike_store
+
+volumes:
+  postgres_data:

@@ -57,6 +57,10 @@ function OrderHistory() {
                 throw new Error('Failed to fetch order details');
             }
             const data = await response.json();
+            // Parse the items if they're stored as a string
+            if (typeof data.items === 'string') {
+                data.items = JSON.parse(data.items);
+            }
             setSelectedOrder(data);
         } catch (error) {
             setError(error.message);
@@ -196,8 +200,8 @@ function OrderHistory() {
                                 Items
                             </Typography>
                             <List>
-                                {selectedOrder.items.map((item) => (
-                                    <ListItem key={item.id}>
+                                {selectedOrder.items.map((item, index) => (
+                                    <ListItem key={index}>
                                         <ListItemAvatar>
                                             <Avatar>
                                                 <TwoWheelerIcon />

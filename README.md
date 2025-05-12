@@ -1,82 +1,284 @@
-# Motorbike Store - Test Automation Sandbox
+# Motorbike Store - Песочница для тестирования
 
-A web application designed for test automation lessons, featuring an online motorbike store.
+Веб-приложение, разработанное для уроков по автоматизации тестирования, представляющее собой онлайн-магазин мотоциклов с фронтендом на React и бэкендом на Node.js.
 
-## Project Structure
+## Структура проекта
 
 ```
 motorbike-store/
-├── frontend/          # React frontend application
-├── backend/           # Node.js backend server
-└── database/          # PGlite database files
+├── frontend/          # React фронтенд приложение
+│   ├── src/          # Исходные файлы
+│   │   ├── components/  # Переиспользуемые React компоненты
+│   │   ├── pages/      # Компоненты страниц
+│   │   ├── context/    # React контекст провайдеры
+│   │   └── App.js      # Главный компонент приложения
+│   └── public/       # Статические файлы
+├── backend/          # Node.js бэкенд сервер
+│   ├── src/         # Исходные файлы
+│   │   ├── db/      # Скрипты базы данных
+│   │   └── server.js # Express сервер
+│   └── assets/      # Статические ресурсы (изображения)
+└── database/        # Файлы PostgreSQL базы данных
 ```
 
-## Features
+## Функциональность
 
-- Browse motorbikes catalog
-- View detailed motorbike information
-- Add motorbikes to shopping cart
-- User authentication
-- Order management
+- Просмотр каталога мотоциклов с фильтрацией и поиском
+- Просмотр подробной информации о мотоцикле
+- Добавление мотоциклов в корзину
+- Создание и управление заказами
+- Просмотр истории заказов
+- Адаптивный дизайн на Material-UI
+- RESTful API эндпоинты
+- PostgreSQL база данных с примерами данных
+- API документация с использованием Swagger UI
 
-## Tech Stack
+## Технологический стек
 
-- Frontend: React.js
-- Backend: Node.js with Express
-- Database: PGlite
-- Testing: Jest, React Testing Library
+- Фронтенд:
+  - React.js
+  - Material-UI
+  - React Router
+  - Context API для управления состоянием
+- Бэкенд:
+  - Node.js с Express
+  - PostgreSQL база данных
+  - RESTful API
+  - Swagger UI для документации API
 
-## Setup Instructions
+## Предварительные требования
 
-### Prerequisites
+- Node.js (v18 или выше)
+- npm или yarn
+- PostgreSQL (v14 или выше)
+- DBeaver (опционально, для управления базой данных)
 
-- Node.js (v18 or higher)
-- npm or yarn
+## Установка
 
-### Installation
+1. Клонировать репозиторий:
 
-1. Clone the repository
-2. Install frontend dependencies:
+   ```bash
+   git clone <repository-url>
+   cd motorbike-store
+   ```
+
+2. Установить зависимости фронтенда:
+
    ```bash
    cd frontend
    npm install
    ```
-3. Install backend dependencies:
+
+3. Установить зависимости бэкенда:
    ```bash
    cd backend
    npm install
    ```
 
-### Running the Application
+## Настройка базы данных
 
-1. Start the backend server:
+1. Создать PostgreSQL базу данных:
+
+   ```bash
+   cd backend
+   ./setup-db.sh
+   ```
+
+2. Конфигурация DBeaver (опционально):
+
+   ```
+   Имя соединения: Motorbike Store
+   Хост: localhost
+   Порт: 5432
+   База данных: motorbike_store
+   Пользователь: postgres
+   Пароль: postgres
+   ```
+
+3. Схема базы данных:
+   - `users`: Аккаунты пользователей
+   - `motorbikes`: Каталог мотоциклов
+   - `orders`: Записи заказов
+   - `order_items`: Отдельные товары в заказах
+
+## Запуск приложения
+
+1. Запустить бэкенд сервер:
 
    ```bash
    cd backend
    npm run dev
    ```
 
-2. Start the frontend development server:
+   Бэкенд будет доступен по адресу http://localhost:5001
+
+2. Запустить фронтенд сервер разработки:
+
    ```bash
    cd frontend
    npm start
    ```
 
-The application will be available at:
+   Фронтенд будет доступен по адресу http://localhost:3000
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
+3. Запустить сервер документации API:
+   ```bash
+   cd backend
+   npm run docs
+   ```
+   Документация будет доступна по адресу http://localhost:5002
 
-## Testing
+## Запуск приложения с помощью Docker Compose
 
-To run tests:
+Для быстрого запуска всего приложения (фронтенд, бэкенд, база данных и документация API) можно использовать Docker Compose:
 
-```bash
-# Frontend tests
-cd frontend
-npm test
+1. Убедитесь, что у вас установлены Docker и Docker Compose.
 
-# Backend tests
-cd backend
-npm test
-```
+2. Клонируйте репозиторий:
+
+   ```bash
+   git clone <repository-url>
+   cd <repository-directory>
+   ```
+
+3. Запустите приложение с помощью Docker Compose:
+
+   ```bash
+   docker-compose up -d
+   ```
+
+4. Приложение будет доступно по следующим адресам:
+
+   - Фронтенд: http://localhost:3000
+   - Бэкенд API: http://localhost:5001
+   - Swagger документация: http://localhost:5002
+   - PostgreSQL: localhost:5433
+
+5. Для остановки приложения:
+
+   ```bash
+   docker-compose down
+   ```
+
+6. Для просмотра логов:
+
+   ```bash
+   docker-compose logs -f
+   ```
+
+7. Для пересборки конкретного сервиса:
+
+   ```bash
+   docker-compose up -d --build <service-name>
+   ```
+
+   где `<service-name>` может быть: `frontend`, `backend`, `db`, или `docs`
+
+### Структура Docker Compose
+
+Docker Compose настроен для запуска четырех сервисов:
+
+- `frontend`: React-приложение (порт 3000)
+- `backend`: Node.js API сервер (порт 5001)
+- `docs`: Отдельный сервер Swagger документации (порт 5002)
+- `db`: PostgreSQL база данных (порт 5433)
+
+Все необходимые переменные окружения и зависимости настроены автоматически в соответствующих Dockerfile'ах.
+
+## API Документация
+
+API документация доступна двумя способами:
+
+1. Встроенная документация в API сервере:
+
+   ```
+   http://localhost:5001/api-docs
+   ```
+
+2. Отдельный сервер документации (запускается командой `npm run docs`):
+   ```
+   http://localhost:5002
+   ```
+
+Документация включает:
+
+- Описание всех доступных эндпоинтов
+- Схемы запросов и ответов
+- Примеры использования API
+- Интерактивный интерфейс для тестирования API
+
+## API Эндпоинты
+
+### Мотоциклы
+
+- `GET /api/motorbikes` - Получить все мотоциклы
+- `GET /api/motorbikes/:id` - Получить мотоцикл по ID
+
+### Заказы
+
+- `POST /api/orders` - Создать новый заказ
+- `GET /api/orders` - Получить историю заказов
+- `GET /api/orders/:id` - Получить детали заказа
+
+### Ресурсы
+
+- `GET /assets/:filename` - Получить статические ресурсы (изображения)
+
+## Разработка
+
+### Добавление новых функций
+
+1. Фронтенд:
+
+   - Создавать новые компоненты в `frontend/src/components`
+   - Добавлять новые страницы в `frontend/src/pages`
+   - Обновлять маршрутизацию в `frontend/src/App.js`
+
+2. Бэкенд:
+   - Добавлять новые маршруты в `backend/src/server.js`
+   - Создавать новые миграции базы данных в `backend/src/db`
+   - Обновлять документацию API
+
+### Управление базой данных
+
+1. Просмотр схемы базы данных:
+
+   ```sql
+   \d motorbikes
+   \d orders
+   \d order_items
+   ```
+
+2. Примеры запросов:
+
+   ```sql
+   -- Получить все мотоциклы
+   SELECT * FROM motorbikes;
+
+   -- Получить историю заказов
+   SELECT * FROM orders;
+
+   -- Получить элементы заказа с деталями мотоцикла
+   SELECT oi.*, m.brand, m.model
+   FROM order_items oi
+   JOIN motorbikes m ON oi.motorbike_id = m.id;
+   ```
+
+## Устранение неполадок
+
+1. Проблемы с подключением к базе данных:
+
+   - Проверить, что PostgreSQL запущен
+   - Проверить учетные данные базы данных
+   - Убедиться, что база данных существует
+
+2. Проблемы с бэкендом:
+
+   - Проверить логи сервера
+   - Проверить переменные окружения
+   - Убедиться, что все зависимости установлены
+
+3. Проблемы с фронтендом:
+   - Очистить кэш браузера
+   - Проверить консоль на наличие ошибок
+   - Проверить доступность API эндпоинтов
