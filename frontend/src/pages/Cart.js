@@ -39,32 +39,38 @@ function Cart() {
 
     const handleCheckout = async () => {
         try {
+            // Transform cart items to match the expected format for the server
+            const orderItems = cartItems.map(item => ({
+                motorbike_id: item.id,
+                quantity: item.quantity
+            }));
+
             const response = await fetch(`${API_URL}/api/orders`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    items: cartItems,
+                    items: orderItems,
                     total_amount: calculateTotal(),
                 }),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to create order');
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create order');
             }
 
             const result = await response.json();
 
-            if (result.success) {
-                setShowSuccess(true);
-                clearCart();
-                // Redirect to home page after 2 seconds
-                setTimeout(() => {
-                    navigate('/');
-                }, 2000);
-            }
+            setShowSuccess(true);
+            clearCart();
+            // Redirect to home page after 2 seconds
+            setTimeout(() => {
+                navigate('/');
+            }, 2000);
         } catch (error) {
+            console.error('Error creating order:', error);
             setError(error.message);
         }
     };

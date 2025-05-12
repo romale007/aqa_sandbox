@@ -11,61 +11,75 @@ import {
     Chip,
     Snackbar,
     Alert,
+    CircularProgress
 } from '@mui/material';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { useCart } from '../context/CartContext';
 
-// Backend API URL
-const API_URL = 'http://localhost:5001';
+// Get API URL from environment variable or use default
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 function MotorbikeDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [motorbike, setMotorbike] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [showAlert, setShowAlert] = useState(false);
+    const [error, setError] = useState(null);
     const { addToCart } = useCart();
 
     useEffect(() => {
         const fetchMotorbike = async () => {
             try {
+                setLoading(true);
                 const response = await fetch(`${API_URL}/api/motorbikes/${id}`);
+
                 if (!response.ok) {
                     throw new Error('Motorbike not found');
                 }
+
                 const data = await response.json();
 
                 // Update image URL to use the backend server
-                const updatedMotorbike = {
-                    ...data,
-                    image_url: data.image_url ? `${API_URL}${data.image_url}` : null
-                };
+                if (data.image_url) {
+                    data.image_url = `${API_URL}${data.image_url}`;
+                }
 
-                setMotorbike(updatedMotorbike);
-            } catch (error) {
-                console.error('Error fetching motorbike:', error);
-                navigate('/motorbikes');
-            } finally {
+                setMotorbike(data);
+                setLoading(false);
+            } catch (err) {
+                console.error('Error fetching motorbike:', err);
+                setError(err.message);
                 setLoading(false);
             }
         };
 
         fetchMotorbike();
-    }, [id, navigate]);
+    }, [id]);
 
     const handleAddToCart = () => {
         addToCart(motorbike);
-        setShowAlert(true);
-    };
-
-    const handleCloseAlert = () => {
-        setShowAlert(false);
     };
 
     if (loading) {
         return (
-            <Container>
-                <Typography>Loading...</Typography>
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error) {
+        return (
+            <Container maxWidth="md" sx={{ mt: 4, textAlign: 'center' }}>
+                <Typography variant="h5" color="error">{error}</Typography>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => navigate('/motorbikes')}
+                    sx={{ mt: 2 }}
+                >
+                    Back to Motorbikes
+                </Button>
             </Container>
         );
     }
@@ -75,74 +89,70 @@ function MotorbikeDetail() {
     }
 
     return (
-        <Container>
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
             <Grid container spacing={4}>
                 <Grid item xs={12} md={6}>
-                    <Paper
-                        sx={{
-                            p: 2,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            height: '100%',
-                        }}
-                    >
-                        <img
-                            src={motorbike.image_url || 'https://source.unsplash.com/random/800x600/?motorcycle'}
+                    <Paper elevation={3} sx={{ p: 2, height: '100%' }}>
+                        <Box
+                            component="img"
+                            src={motorbike.image_url || 'https://via.placeholder.com/600x400?text=No+Image'}
                             alt={`${motorbike.brand} ${motorbike.model}`}
-                            style={{
+                            sx={{
                                 width: '100%',
                                 height: 'auto',
-                                objectFit: 'cover',
-                                borderRadius: '8px',
+                                borderRadius: 1
                             }}
                         />
                     </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                    <Box sx={{ mb: 4 }}>
-                        <Typography variant="h4" component="h1" gutterBottom>
-                            {motorbike.brand} {motorbike.model}
-                        </Typography>
-                        <Typography variant="h5" color="primary" gutterBottom>
-                            ${motorbike.price.toLocaleString()}
-                        </Typography>
-                        <Box sx={{ my: 2 }}>
-                            <Chip
-                                label={`Year: ${motorbike.year}`}
-                                sx={{ mr: 1 }}
-                            />
-                            <Chip
-                                label={`Stock: ${motorbike.stock} available`}
-                                color={motorbike.stock > 0 ? 'success' : 'error'}
-                            />
-                        </Box>
-                        <Typography variant="body1" paragraph>
-                            {motorbike.description}
-                        </Typography>
-                        <Divider sx={{ my: 2 }} />
+                    <Typography variant="h3" component="h1" gutterBottom>
+                        {motorbike.brand} {motorbike.model}
+                    </Typography>
+                    <Typography variant="h5" color="text.secondary" gutterBottom>
+                        Year: {motorbike.year}
+                    </Typography>
+                    <Typography variant="h4" color="primary" sx={{ my: 2 }}>
+                        ${motorbike.price.toLocaleString()}
+                    </Typography>
+                    <Divider sx={{ my: 2 }} />
+                    <Typography variant="body1" paragraph>
+                        <strong>Brand:</strong> {motorbike.brand}
+                    </Typography>
+                    <Typography variant="body1" paragraph>
+                        <strong>Model:</strong> {motorbike.model}
+                    </Typography>
+                    <Typography variant="body1" paragraph>
+                        <strong>Year:</strong> {motorbike.year}
+                    </Typography>
+                    <Typography variant="body1" paragraph>
+                        <strong>Price:</strong> ${motorbike.price.toLocaleString()}
+                    </Typography>
+                    <Typography variant="body1" paragraph>
+                        <strong>Stock:</strong> {motorbike.stock} available
+                    </Typography>
+                    <Box sx={{ mt: 4 }}>
                         <Button
                             variant="contained"
+                            color="primary"
                             size="large"
-                            startIcon={<ShoppingCartIcon />}
                             onClick={handleAddToCart}
-                            disabled={motorbike.stock === 0}
-                            sx={{ mt: 2 }}
+                            disabled={motorbike.stock <= 0}
+                            sx={{ mr: 2 }}
                         >
-                            {motorbike.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                            Add to Cart
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            color="primary"
+                            size="large"
+                            onClick={() => navigate('/motorbikes')}
+                        >
+                            Back to Motorbikes
                         </Button>
                     </Box>
                 </Grid>
             </Grid>
-            <Snackbar
-                open={showAlert}
-                autoHideDuration={3000}
-                onClose={handleCloseAlert}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-            >
-                <Alert onClose={handleCloseAlert} severity="success" sx={{ width: '100%' }}>
-                    {motorbike.brand} {motorbike.model} added to cart!
-                </Alert>
-            </Snackbar>
         </Container>
     );
 }

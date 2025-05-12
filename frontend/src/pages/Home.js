@@ -1,130 +1,117 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-    Box,
+    Container,
     Typography,
-    Button,
     Grid,
     Card,
     CardContent,
     CardMedia,
-    Container,
+    Button,
+    Box,
+    CircularProgress
 } from '@mui/material';
+import { Link } from 'react-router-dom';
 
-// Backend API URL
-const API_URL = 'http://localhost:5001';
+// Get API URL from environment variable or use default
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
-function Home() {
-    const navigate = useNavigate();
+const Home = () => {
     const [featuredBikes, setFeaturedBikes] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchFeaturedBikes = async () => {
+        const fetchBikes = async () => {
             try {
                 const response = await fetch(`${API_URL}/api/motorbikes`);
                 const data = await response.json();
-                // Get one bike from each brand for featured section
+
+                // Get one bike from each brand
                 const brands = ['Honda', 'Yamaha', 'Kawasaki', 'Ducati', 'BMW', 'Harley Davidson'];
                 const featured = brands.map(brand => {
-                    return data.find(bike => bike.brand === brand) || null;
+                    const brandBikes = data.filter(bike => bike.brand === brand);
+                    return brandBikes.length > 0 ? brandBikes[0] : null;
                 }).filter(bike => bike !== null);
 
-                // Update image URLs to use the backend server
-                const featuredWithCorrectUrls = featured.map(bike => ({
-                    ...bike,
-                    image_url: bike.image_url ? `${API_URL}${bike.image_url}` : null
-                }));
-
-                setFeaturedBikes(featuredWithCorrectUrls);
+                setFeaturedBikes(featured);
+                setLoading(false);
             } catch (error) {
-                console.error('Error fetching featured bikes:', error);
-            } finally {
+                console.error('Error fetching bikes:', error);
                 setLoading(false);
             }
         };
 
-        fetchFeaturedBikes();
+        fetchBikes();
     }, []);
 
+    if (loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
     return (
-        <Box>
-            {/* Hero Section */}
-            <Box
-                sx={{
-                    bgcolor: 'background.paper',
-                    pt: 8,
-                    pb: 6,
-                    textAlign: 'center',
-                }}
-            >
-                <Container maxWidth="sm">
-                    <Typography
-                        component="h1"
-                        variant="h2"
-                        color="text.primary"
-                        gutterBottom
-                    >
-                        Welcome to Motorbike Store
-                    </Typography>
-                    <Typography variant="h5" color="text.secondary" paragraph>
-                        Discover our collection of premium motorbikes. From sport bikes to
-                        cruisers, find the perfect ride for your adventures.
-                    </Typography>
-                    <Button
-                        variant="contained"
-                        size="large"
-                        onClick={() => navigate('/motorbikes')}
-                    >
-                        Browse Motorbikes
-                    </Button>
-                </Container>
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+            <Box sx={{ textAlign: 'center', mb: 6 }}>
+                <Typography variant="h2" component="h1" gutterBottom>
+                    Welcome to Motorbike Store
+                </Typography>
+                <Typography variant="h5" color="text.secondary" paragraph>
+                    Discover our collection of premium motorbikes from top brands
+                </Typography>
+                <Button
+                    component={Link}
+                    to="/motorbikes"
+                    variant="contained"
+                    color="primary"
+                    size="large"
+                    sx={{ mt: 2 }}
+                >
+                    Browse All Motorbikes
+                </Button>
             </Box>
 
-            {/* Featured Bikes Section */}
-            <Container sx={{ py: 8 }} maxWidth="md">
-                <Typography variant="h4" component="h2" gutterBottom>
-                    Featured Motorbikes
-                </Typography>
-                <Grid container spacing={4}>
-                    {loading ? (
-                        <Grid item xs={12}>
-                            <Typography>Loading featured bikes...</Typography>
-                        </Grid>
-                    ) : (
-                        featuredBikes.map((bike) => (
-                            <Grid item key={bike.id} xs={12} sm={6} md={4}>
-                                <Card
-                                    sx={{
-                                        height: '100%',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        cursor: 'pointer',
-                                    }}
-                                    onClick={() => navigate(`/motorbikes/${bike.id}`)}
+            <Typography variant="h4" component="h2" gutterBottom sx={{ mb: 4 }}>
+                Featured Motorbikes
+            </Typography>
+
+            <Grid container spacing={4}>
+                {featuredBikes.map((bike) => (
+                    <Grid item key={bike.id} xs={12} sm={6} md={4}>
+                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <CardMedia
+                                component="img"
+                                height="200"
+                                image={bike.image_url ? `${API_URL}${bike.image_url}` : 'https://via.placeholder.com/300x200?text=No+Image'}
+                                alt={`${bike.brand} ${bike.model}`}
+                            />
+                            <CardContent sx={{ flexGrow: 1 }}>
+                                <Typography gutterBottom variant="h5" component="h3">
+                                    {bike.brand} {bike.model}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" paragraph>
+                                    Year: {bike.year}
+                                </Typography>
+                                <Typography variant="h6" color="primary">
+                                    ${bike.price.toLocaleString()}
+                                </Typography>
+                                <Button
+                                    component={Link}
+                                    to={`/motorbikes/${bike.id}`}
+                                    variant="outlined"
+                                    color="primary"
+                                    sx={{ mt: 2 }}
                                 >
-                                    <CardMedia
-                                        component="img"
-                                        height="200"
-                                        image={bike.image_url}
-                                        alt={`${bike.brand} ${bike.model}`}
-                                    />
-                                    <CardContent sx={{ flexGrow: 1 }}>
-                                        <Typography gutterBottom variant="h5" component="h2">
-                                            {bike.brand} {bike.model}
-                                        </Typography>
-                                        <Typography>
-                                            ${bike.price.toLocaleString()}
-                                        </Typography>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-                        ))
-                    )}
-                </Grid>
-            </Container>
-        </Box>
+                                    View Details
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                ))}
+            </Grid>
+        </Container>
     );
-}
+};
 
 export default Home; 
