@@ -17,18 +17,34 @@ import {
     Stack,
     Button,
     CircularProgress,
+    Chip,
+    OutlinedInput,
+    Divider,
+    IconButton,
 } from '@mui/material';
 import { Link } from 'react-router-dom';
+import CloseIcon from '@mui/icons-material/Close';
 
 // Get API URL from environment variable or use default
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
+// Price range options
+const PRICE_RANGES = [
+    { value: 'all', label: 'All Prices' },
+    { value: '0-5000', label: 'Under $5,000' },
+    { value: '5000-10000', label: '$5,000 - $10,000' },
+    { value: '10000-15000', label: '$10,000 - $15,000' },
+    { value: '15000-20000', label: '$15,000 - $20,000' },
+    { value: '20000-30000', label: '$20,000 - $30,000' },
+    { value: '30000-', label: 'Over $30,000' },
+];
 
 function MotorbikeList() {
     const navigate = useNavigate();
     const [motorbikes, setMotorbikes] = useState([]);
     const [filteredBikes, setFilteredBikes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [brandFilter, setBrandFilter] = useState('all');
+    const [selectedBrands, setSelectedBrands] = useState([]);
     const [priceRange, setPriceRange] = useState('all');
     const [page, setPage] = useState(1);
     const bikesPerPage = 9; // Show 9 bikes per page (3x3 grid)
@@ -79,8 +95,8 @@ function MotorbikeList() {
         }
 
         // Apply brand filter
-        if (brandFilter !== 'all') {
-            filtered = filtered.filter((bike) => bike.brand === brandFilter);
+        if (selectedBrands.length > 0) {
+            filtered = filtered.filter((bike) => selectedBrands.includes(bike.brand));
         }
 
         // Apply price range filter
@@ -93,7 +109,7 @@ function MotorbikeList() {
 
         setFilteredBikes(filtered);
         setPage(1); // Reset to first page when filters change
-    }, [motorbikes, searchTerm, brandFilter, priceRange]);
+    }, [motorbikes, searchTerm, selectedBrands, priceRange]);
 
     // Calculate pagination
     const indexOfLastBike = page * bikesPerPage;
@@ -104,6 +120,15 @@ function MotorbikeList() {
     const handlePageChange = (event, value) => {
         setPage(value);
         window.scrollTo(0, 0); // Scroll to top when page changes
+    };
+
+    const handleBrandChange = (event) => {
+        const {
+            target: { value },
+        } = event;
+        setSelectedBrands(
+            typeof value === 'string' ? value.split(',') : value,
+        );
     };
 
     if (loading) {
@@ -123,12 +148,12 @@ function MotorbikeList() {
     }
 
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }} data-testid="motorbike-list-page">
             <Typography variant="h4" component="h1" gutterBottom>
                 Motorbikes
             </Typography>
 
-            <Box sx={{ mb: 4, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ mb: 4, display: 'flex', gap: 2, flexWrap: 'wrap' }} data-testid="filters-section">
                 <TextField
                     label="Search"
                     variant="outlined"
@@ -136,28 +161,77 @@ function MotorbikeList() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     sx={{ minWidth: 200 }}
+                    data-testid="search-input"
                 />
                 <FormControl size="small" sx={{ minWidth: 200 }}>
                     <InputLabel id="brand-filter-label">Brand</InputLabel>
                     <Select
                         labelId="brand-filter-label"
-                        value={brandFilter}
-                        label="Brand"
-                        onChange={(e) => setBrandFilter(e.target.value)}
+                        multiple
+                        value={selectedBrands}
+                        onChange={handleBrandChange}
+                        input={<OutlinedInput label="Brand" />}
+                        renderValue={(selected) => (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
+                                {selected.map((value) => (
+                                    <Chip key={value} label={value} data-testid={`selected-brand-${value}`} />
+                                ))}
+                                {selected.length > 0 && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setSelectedBrands([]);
+                                        }}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                        }}
+                                        sx={{
+                                            p: 0.5,
+                                            ml: 0.5,
+                                            '&:hover': { backgroundColor: 'transparent' }
+                                        }}
+                                        data-testid="clear-brands-button"
+                                    >
+                                        <CloseIcon fontSize="small" />
+                                    </IconButton>
+                                )}
+                            </Box>
+                        )}
+                        data-testid="brand-select"
                     >
-                        <MenuItem value="all">All Brands</MenuItem>
                         {brands.map((brand) => (
-                            <MenuItem key={brand} value={brand}>{brand}</MenuItem>
+                            <MenuItem key={brand} value={brand} data-testid={`brand-option-${brand}`}>
+                                {brand}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <InputLabel id="price-range-label">Price Range</InputLabel>
+                    <Select
+                        labelId="price-range-label"
+                        value={priceRange}
+                        label="Price Range"
+                        onChange={(e) => setPriceRange(e.target.value)}
+                        data-testid="price-range-select"
+                    >
+                        {PRICE_RANGES.map((range) => (
+                            <MenuItem key={range.value} value={range.value} data-testid={`price-option-${range.value}`}>
+                                {range.label}
+                            </MenuItem>
                         ))}
                     </Select>
                 </FormControl>
             </Box>
 
-            <Typography variant="body1" sx={{ mb: 2 }}>
+            <Typography variant="body1" sx={{ mb: 2 }} data-testid="results-count">
                 Showing {currentBikes.length} of {filteredBikes.length} motorbikes
             </Typography>
 
-            <Grid container spacing={4}>
+            <Grid container spacing={4} data-testid="motorbike-grid">
                 {currentBikes.map((bike) => (
                     <Grid item key={bike.id} xs={12} sm={6} md={4}>
                         <Card
@@ -168,21 +242,23 @@ function MotorbikeList() {
                                 cursor: 'pointer',
                             }}
                             onClick={() => navigate(`/motorbikes/${bike.id}`)}
+                            data-testid={`motorbike-card-${bike.id}`}
                         >
                             <CardMedia
                                 component="img"
                                 height="200"
                                 image={bike.image_url || 'https://via.placeholder.com/300x200?text=No+Image'}
                                 alt={`${bike.brand} ${bike.model}`}
+                                data-testid={`motorbike-image-${bike.id}`}
                             />
                             <CardContent sx={{ flexGrow: 1 }}>
-                                <Typography gutterBottom variant="h5" component="h3">
+                                <Typography gutterBottom variant="h5" component="h3" data-testid={`motorbike-title-${bike.id}`}>
                                     {bike.brand} {bike.model}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary" paragraph>
+                                <Typography variant="body2" color="text.secondary" paragraph data-testid={`motorbike-year-${bike.id}`}>
                                     Year: {bike.year}
                                 </Typography>
-                                <Typography variant="h6" color="primary">
+                                <Typography variant="h6" color="primary" data-testid={`motorbike-price-${bike.id}`}>
                                     ${bike.price.toLocaleString()}
                                 </Typography>
                                 <Button
@@ -191,6 +267,7 @@ function MotorbikeList() {
                                     variant="outlined"
                                     color="primary"
                                     sx={{ mt: 2 }}
+                                    data-testid={`view-details-button-${bike.id}`}
                                 >
                                     View Details
                                 </Button>
@@ -201,12 +278,13 @@ function MotorbikeList() {
             </Grid>
 
             {pageCount > 1 && (
-                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }} data-testid="pagination">
                     <Pagination
                         count={pageCount}
                         page={page}
                         onChange={handlePageChange}
                         color="primary"
+                        data-testid="pagination-controls"
                     />
                 </Box>
             )}
